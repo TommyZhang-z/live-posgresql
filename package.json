@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@electric-sql/pglite": "^0.0.2"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  },
+  "scripts": {
+    "tw:build": "tailwindcss -i ./src/input.css -o ./src/output.css",
+    "tw:watch": "tailwindcss -i ./src/input.css -o ./src/output.css --watch"
+  }
+}

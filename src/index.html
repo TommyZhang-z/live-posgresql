@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="./output.css" rel="stylesheet" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@electric-sql/pglite": "https://cdn.jsdelivr.net/npm/@electric-sql/pglite/dist/index.js",
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        }
+      }
+    </script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/sql/sql.min.js"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/dracula.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <style>
+      .CodeMirror {
+        font-size: 20px; /* Adjust font size as needed */
+      }
+    </style>
+    <title>PGLive</title>
+  </head>
+  <body>
+    <div id="app" class="w-full h-screen bg-gray-700 text-white">
+      <div class="grid grid-cols-3 gap-4">
+        <section class="flex flex-col gap-5 items-center">
+          <h1 class="text-3xl mb-4">PGLive Blocks</h1>
+          <div v-for="(block, index) in blocks" :key="index" class="mb-4">
+            <h2 class="text-xl">Query</h2>
+            <pre>{{ block.query }}</pre>
+            <h2 class="text-xl">Result</h2>
+            <pre>{{ block.result }}</pre>
+          </div>
+        </section>
+        <section class="flex flex-col gap-5 items-center">
+          <div id="sql-editor" class="w-full"></div>
+          <!-- Button for saving blocks commented out, can be re-enabled if needed -->
+          <!-- <button @click="appendBlock" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+          Save Block
+        </button> -->
+        </section>
+        <section class="flex flex-col gap-5 items-center">
+          <h1 class="text-3xl">Results</h1>
+          <pre>{{ result }}</pre>
+        </section>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createApp, ref, onMounted } from "vue";
+      import { PGlite } from "@electric-sql/pglite";
+
+      const app = createApp({
+        setup() {
+          const db = new PGlite();
+          const editor = ref(null);
+          const result = ref("");
+          const blocks = ref([]);
+          let debouncerTimer = null;
+
+          onMounted(() => {
+            initEditor();
+          });
+
+          const initEditor = () => {
+            editor.value = CodeMirror(document.getElementById("sql-editor"), {
+              mode: "text/x-sql",
+              theme: "dracula",
+              lineNumbers: true,
+            });
+            editor.value.setSize(null, "100vh");
+            editor.value.on("change", () => {
+              clearTimeout(debouncerTimer);
+              debouncerTimer = setTimeout(() => {
+                executeQuery(editor.value.getValue());
+              }, 500);
+            });
+          };
+
+          const executeQuery = async (query) => {
+            if (query.trim() === "") {
+              result.value = "";
+              return;
+            }
+            if (query.startsWith("http://") || query.startsWith("https://")) {
+              const response = await fetch(query);
+              const sql = await response.text();
+              runSQL(sql);
+            } else {
+              runSQL(query);
+            }
+          };
+
+          const runSQL = async (sql) => {
+            const cleanedSql = sql
+              .split("\n")
+              .filter(
+                (line) => !line.includes("\\! echo") && !line.startsWith("DROP")
+              )
+              .join("\n");
+            try {
+              const response = await db.query(cleanedSql);
+              result.value = JSON.stringify(response, null, 2);
+            } catch (error) {
+              result.value = error.message;
+            }
+          };
+
+          const appendBlock = () => {
+            const query = editor.value.getValue();
+            if (query) {
+              blocks.value.push({
+                query: query,
+                result: result.value,
+              });
+              editor.value.setValue("");
+            }
+          };
+
+          return {
+            editor,
+            result,
+            blocks,
+            appendBlock,
+          };
+        },
+      });
+
+      app.mount("#app");
+    </script>
+  </body>
+</html>
