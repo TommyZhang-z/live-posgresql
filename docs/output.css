@@ -753,12 +753,20 @@ video {
   overflow: auto;
 }
 
+.overflow-hidden {
+  overflow: hidden;
+}
+
 .overflow-visible {
   overflow: visible;
 }
 
 .overflow-x-hidden {
   overflow-x: hidden;
+}
+
+.overflow-x-scroll {
+  overflow-x: scroll;
 }
 
 .overflow-y-scroll {
@@ -830,6 +838,11 @@ video {
 .border-\[\#8aadf4\] {
   --tw-border-opacity: 1;
   border-color: rgb(138 173 244 / var(--tw-border-opacity));
+}
+
+.border-\[\#a6da95\] {
+  --tw-border-opacity: 1;
+  border-color: rgb(166 218 149 / var(--tw-border-opacity));
 }
 
 .bg-blue-500 {
