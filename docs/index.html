@@ -59,7 +59,7 @@
             class="my-2 w-[calc(100%-36px)] p-4 border-dashed rounded-sm border-[#8aadf4] border-2"
           >
             <section v-if="block.type === 'file'" class="flex">
-              <div class="flex">
+              <div class="flex items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -77,7 +77,7 @@
                   />
                   <path d="M14 2v4a2 2 0 0 0 2 2h4" />
                 </svg>
-                <span class="ml-2">{{ block.source }}</span>
+                <span class="ml-2 text-xl font-bold">{{ block.source }}</span>
               </div>
             </section>
             <section v-else class="">
