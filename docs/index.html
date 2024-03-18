@@ -36,32 +36,106 @@
     />
     <style>
       .CodeMirror {
-        font-size: 20px; /* Adjust font size as needed */
+        font-size: 18px; /* Adjust font size as needed */
       }
     </style>
     <title>PGLive</title>
   </head>
   <body>
+    <div
+      id="overlay"
+      class="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center z-[9999] hidden border-dashed border-2 border-[#8aadf4] rounded-xl"
+    >
+      <p class="text-xl text-white">Drop files here...</p>
+    </div>
     <div id="app" class="w-full h-screen bg-gray-700 text-white">
-      <div class="grid grid-cols-3 gap-4">
-        <section class="flex flex-col gap-5 items-center">
-          <h1 class="text-3xl mb-4">PGLive Blocks</h1>
-          <div v-for="(block, index) in blocks" :key="index" class="mb-4">
-            <h2 class="text-xl">Query</h2>
-            <pre>{{ block.query }}</pre>
-            <h2 class="text-xl">Result</h2>
-            <pre>{{ block.result }}</pre>
+      <div class="grid grid-cols-3 items-center h-full">
+        <section
+          class="flex flex-col gap-5 items-center max-h-screen overflow-y-scroll overflow-x-hidden"
+        >
+          <div
+            v-for="(block, index) in blocks"
+            :key="index"
+            class="my-2 w-[calc(100%-36px)] p-4 border-dashed rounded-sm border-[#8aadf4] border-2"
+          >
+            <section v-if="block.type === 'file'" class="flex">
+              <div class="flex">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-file"
+                >
+                  <path
+                    d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"
+                  />
+                  <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                </svg>
+                <span class="ml-2">{{ block.source }}</span>
+              </div>
+            </section>
+            <section v-else class="">
+              <div class="flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-square-chevron-right"
+                >
+                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                  <path d="m10 8 4 4-4 4" />
+                </svg>
+                <span class="ml-2 font-bold text-xl">{{ block.source }}</span>
+              </div>
+              <pre><code>{{ block.result }}</code></pre>
+            </section>
           </div>
         </section>
-        <section class="flex flex-col gap-5 items-center">
-          <div id="sql-editor" class="w-full"></div>
-          <!-- Button for saving blocks commented out, can be re-enabled if needed -->
-          <!-- <button @click="appendBlock" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
-          Save Block
-        </button> -->
+        <section
+          class="flex flex-col h-[50vh] items-center max-h-screen overflow-y-scroll overflow-x-hidden"
+        >
+          <div
+            id="sql-editor"
+            class="w-full flex-1 overflow-auto rounded-t-md"
+          ></div>
+          <div class="w-full flex justify-between">
+            <button
+              @click="appendBlock"
+              class="px-4 py-3 bg-[#a6da95] hover:bg-[#a6da95]/90 text-[#24273a] rounded-bl-md cursor-pointer w-1/2"
+            >
+              Save Block
+            </button>
+            <label
+              for="file"
+              class="px-4 py-3 bg-[#8aadf4] hover:bg-[#8aadf4]/90 text-[#24273a] rounded-br-md cursor-pointer w-1/2 text-center"
+            >
+              Upload File
+            </label>
+            <input
+              type="file"
+              name="file"
+              id="file"
+              class="hidden"
+              @change="executeFileQuery($event.target.files[0])"
+            />
+          </div>
         </section>
-        <section class="flex flex-col gap-5 items-center">
-          <h1 class="text-3xl">Results</h1>
+        <section
+          class="flex flex-col gap-5 items-center max-h-screen overflow-y-scroll overflow-x-hidden"
+        >
+          <!-- <h1 class="text-3xl">Results</h1> -->
           <pre>{{ result }}</pre>
         </section>
       </div>
@@ -79,8 +153,45 @@
           const blocks = ref([]);
           let debouncerTimer = null;
 
+          const overlay = document.getElementById("overlay");
+          const onDragenter = (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            overlay.classList.remove("hidden");
+          };
+
+          const onDragover = (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+          };
+
+          const onDragleave = (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            if (
+              event.clientX <= 0 ||
+              event.clientY <= 0 ||
+              event.clientX >= window.innerWidth ||
+              event.clientY >= window.innerHeight
+            ) {
+              overlay.classList.add("hidden");
+            }
+          };
+
+          const onDrop = (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            overlay.classList.add("hidden");
+
+            if (event.dataTransfer.files.length > 0) {
+              const file = event.dataTransfer.files[0]; // Assuming only one file is dropped
+              executeFileQuery(file);
+            }
+          };
+
           onMounted(() => {
             initEditor();
+            setupDragAndDrop();
           });
 
           const initEditor = () => {
@@ -89,13 +200,24 @@
               theme: "dracula",
               lineNumbers: true,
             });
-            editor.value.setSize(null, "100vh");
+            editor.value.setSize(null, "100%");
             editor.value.on("change", () => {
               clearTimeout(debouncerTimer);
               debouncerTimer = setTimeout(() => {
                 executeQuery(editor.value.getValue());
               }, 500);
             });
+            editor.value.on("dragenter", onDragenter);
+            editor.value.on("dragover", onDragover);
+            editor.value.on("dragleave", onDragleave);
+            editor.value.on("drop", onDrop);
+          };
+
+          const setupDragAndDrop = () => {
+            window.addEventListener("dragenter", onDragenter);
+            window.addEventListener("dragover", onDragover);
+            window.addEventListener("dragleave", onDragleave);
+            window.addEventListener("drop", onDrop);
           };
 
           const executeQuery = async (query) => {
@@ -106,10 +228,22 @@
             if (query.startsWith("http://") || query.startsWith("https://")) {
               const response = await fetch(query);
               const sql = await response.text();
-              runSQL(sql);
+              await runSQL(sql);
             } else {
-              runSQL(query);
+              await runSQL(query);
             }
+          };
+
+          const executeFileQuery = async (file) => {
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+              const sql = event.target.result;
+
+              await runSQL(sql);
+
+              await appendFileBlock(file.name);
+            };
+            reader.readAsText(file);
           };
 
           const runSQL = async (sql) => {
@@ -131,10 +265,21 @@
             const query = editor.value.getValue();
             if (query) {
               blocks.value.push({
-                query: query,
+                type: "query",
+                source: query,
                 result: result.value,
               });
-              editor.value.setValue("");
+            }
+          };
+
+          const appendFileBlock = (filename) => {
+            if (filename) {
+              blocks.value.push({
+                type: "file",
+                source: filename,
+                result: result.value,
+              });
+              result.value = "";
             }
           };
 
@@ -143,6 +288,7 @@
             result,
             blocks,
             appendBlock,
+            executeFileQuery,
           };
         },
       });

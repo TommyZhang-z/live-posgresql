@@ -6,7 +6,7 @@
     "tailwindcss": "^3.4.1"
   },
   "scripts": {
-    "tw:build": "tailwindcss -i ./src/input.css -o ./src/output.css",
-    "tw:watch": "tailwindcss -i ./src/input.css -o ./src/output.css --watch"
+    "tw:build": "tailwindcss -i ./docs/input.css -o ./docs/output.css",
+    "tw:watch": "tailwindcss -i ./docs/input.css -o ./docs/output.css --watch"
   }
 }
